@@ -1,12 +1,12 @@
 from app.core.contxt import RequestContext
 from app.core.decision import Decision
-from app.limiter.sliding_window import SlidingWindowLimiter
+from app.limiter.redis_sw import RedisSlidingWindowLimiter
 
 
 class DecisionEngine:
     def __init__(self):
         # v1 configuration (hardcoded for now)
-        self.rate_limiter = SlidingWindowLimiter(
+        self.rate_limiter = RedisSlidingWindowLimiter(
             window_size=60,   # 60 seconds
             limit=5           # 5 requests per window
         )
