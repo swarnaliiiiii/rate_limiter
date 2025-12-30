@@ -105,7 +105,7 @@ All real-time logic uses in-memory processing + Redis for speed and safety.
 
 ---
 
-## 🧩 Tech Stack
+## Tech Stack
 
 * **Python**
 * **FastAPI**
@@ -114,7 +114,7 @@ All real-time logic uses in-memory processing + Redis for speed and safety.
 
 ---
 
-## 🔜 Upcoming Features
+## Upcoming Features
 
 Planned next steps include:
 
