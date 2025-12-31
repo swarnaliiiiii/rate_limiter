@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: decision-postgres
+    environment:
+      POSTGRES_USER: rate_limiter
+      POSTGRES_PASSWORD: 0325
+      POSTGRES_DB: rate_limiter
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://rate_limiter:0325@postgres:5432/rate_limiter
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
