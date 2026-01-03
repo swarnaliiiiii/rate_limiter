@@ -7,6 +7,7 @@ class RateLimitConfig(Base):
 
     id = Column(Integer, primary_key=True)
     tenant_id = Column(String, unique=True, index=True)
+    route = Column(String, nullable=True, index=True)
     requests = Column(Integer, nullable=False)
     window_seconds = Column(Integer, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
