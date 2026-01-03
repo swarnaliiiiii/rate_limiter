@@ -5,7 +5,7 @@ from typing import Optional
 from app.core.contxt import RequestContext
 from app.core.engine import DecisionEngine
 from app.logging.writer import log_decision_async
-from app.main import engine
+# from app.main import engine
 
 
 router = APIRouter()
