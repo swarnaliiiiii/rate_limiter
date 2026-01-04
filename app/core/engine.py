@@ -5,17 +5,18 @@ from app.penalties.fsm import PenaltyFSM
 from app.penalties.states import PenaltyState
 from app.config.repo import get_rate_limit_for_tenant
 
-
 class DecisionEngine:
     def __init__(self):
         self.limiters = {}
         self.penalty_fsm = PenaltyFSM()
 
-    def _get_limiter_for_tenant(self, tenant_id: str):
-        if tenant_id in self.limiters:
-            return self.limiters[tenant_id]
+    def _get_limiter(self, tenant_id: str, route: str):
+        key = f"{tenant_id}:{route}"
 
-        config = get_rate_limit_for_tenant(tenant_id)
+        if key in self.limiters:
+            return self.limiters[key]
+
+        config = get_rate_limit_for_tenant(tenant_id, route)
 
         if config:
             limiter = RedisSlidingWindowLimiter(
@@ -28,14 +29,13 @@ class DecisionEngine:
                 limit=5
             )
 
-        self.limiters[tenant_id] = limiter
+        self.limiters[key] = limiter
         return limiter
 
     def evaluate(self, ctx: RequestContext) -> Decision:
         key = f"{ctx.tenant_id}:{ctx.route}"
 
         state = self.penalty_fsm.get_state(key)
-
         if state in {PenaltyState.TEMP_BLOCK, PenaltyState.BLOCK}:
             return Decision(
                 action="BLOCK",
@@ -44,7 +44,7 @@ class DecisionEngine:
                 retry_after=60
             )
 
-        limiter = self._get_limiter_for_tenant(ctx.tenant_id)
+        limiter = self._get_limiter(ctx.tenant_id, ctx.route)
         allowed, _ = limiter.allow(key, ctx.timestamp)
 
         if not allowed:
