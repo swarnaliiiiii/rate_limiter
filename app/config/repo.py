@@ -1,31 +1,36 @@
+from sqlalchemy import or_, and_
 from app.logging.db import SessionLocal
 from app.config.models import RateLimitConfig
 
-def get_rate_limit_for_tenant(tenant_id: str, route: str | None):
+def get_rate_limit_config(tenant_id, route, user_id):
     db = SessionLocal()
     try:
-        # 1. Route-specific override
-        rule = (
-            db.query(RateLimitConfig)
-            .filter(
-                RateLimitConfig.tenant_id == tenant_id,
-                RateLimitConfig.route == route
-            )
-            .order_by(RateLimitConfig.created_at.desc())
-            .first()
-        )
-
-        if rule:
-            return rule
-
-        # 2. Tenant default (route IS NULL)
         return (
             db.query(RateLimitConfig)
             .filter(
                 RateLimitConfig.tenant_id == tenant_id,
-                RateLimitConfig.route.is_(None)
+                or_(
+                    # Highest priority
+                    and_(
+                        RateLimitConfig.route == route,
+                        RateLimitConfig.user_id == user_id
+                    ),
+                    # Route-level
+                    and_(
+                        RateLimitConfig.route == route,
+                        RateLimitConfig.user_id.is_(None)
+                    ),
+                    # Tenant-level
+                    and_(
+                        RateLimitConfig.route.is_(None),
+                        RateLimitConfig.user_id.is_(None)
+                    )
+                )
             )
-            .order_by(RateLimitConfig.created_at.desc())
+            .order_by(
+                RateLimitConfig.user_id.desc().nullslast(),
+                RateLimitConfig.route.desc().nullslast()
+            )
             .first()
         )
     finally:

@@ -33,7 +33,7 @@ class DecisionEngine:
         return limiter
 
     def evaluate(self, ctx: RequestContext) -> Decision:
-        key = f"{ctx.tenant_id}:{ctx.route}"
+        key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
 
         state = self.penalty_fsm.get_state(key)
         if state in {PenaltyState.TEMP_BLOCK, PenaltyState.BLOCK}:
