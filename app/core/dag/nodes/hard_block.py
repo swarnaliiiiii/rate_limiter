@@ -8,14 +8,14 @@ class HardBlockNode(DecisionNode):
         self.penalty_fsm = penalty_fsm
 
     def execute(self, ctx):
-        key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
-        state = self.penalty_fsm.get_state(key)
+        rate_key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
+        state = self.penalty_fsm.get_state(rate_key)
 
         if state in {PenaltyState.TEMP_BLOCK, PenaltyState.BLOCK}:
             return NodeResult(
                 Decision(
                     action="BLOCK",
-                    reason=f"PENALTY_{state}",
+                    reason=f"PENALTY_{state.name}",
                     triggered_by="PenaltyFSM",
                     retry_after=60
                 )

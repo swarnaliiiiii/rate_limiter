@@ -8,6 +8,6 @@ class AllowNode(DecisionNode):
             Decision(
                 action="ALLOW",
                 reason="WITHIN_RATE_LIMIT",
-                triggered_by="DAG"
+                triggered_by="SlidingWindowLimiter"
             )
         )

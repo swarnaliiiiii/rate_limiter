@@ -3,21 +3,31 @@ from app.core.dag.result import NodeResult
 from app.core.decision import Decision
 
 class RateLimitNode(DecisionNode):
-    def __init__(self, limiter, penalty_fsm):
-        self.limiter = limiter
-        self.penalty_fsm = penalty_fsm
+    def __init__(self, engine):
+        self.engine = engine  # IMPORTANT: reuse your existing engine logic
 
     def execute(self, ctx):
-        key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
-        allowed, _ = self.limiter.allow(key, ctx.timestamp)
+        rate_key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
 
-        if not allowed:
-            new_state = self.penalty_fsm.escalate(key)
+        limiter = self.engine._get_limiter(ctx)
+        if not limiter:
             return NodeResult(
                 Decision(
                     action="BLOCK",
-                    reason=f"PENALTY_{new_state}",
-                    triggered_by="RateLimit",
+                    reason="NO_RATE_LIMIT_CONFIG",
+                    triggered_by="ConfigResolver"
+                )
+            )
+
+        allowed, _ = limiter.allow(rate_key, ctx.timestamp)
+
+        if not allowed:
+            new_state = self.engine.penalty_fsm.escalate(rate_key)
+            return NodeResult(
+                Decision(
+                    action="BLOCK",
+                    reason=f"PENALTY_{new_state.name}",
+                    triggered_by="RateLimiter",
                     retry_after=60
                 )
             )
