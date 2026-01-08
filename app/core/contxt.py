@@ -1,14 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 import time
+from app.core.traces import DecisionTrace
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class RequestContext:
     tenant_id: str
     route: str
     method: str
     timestamp: int
     user_id: Optional[str] = None
+    trace: DecisionTrace = field(default_factory=DecisionTrace)
+
     
     @staticmethod
     def from_payload(payload) -> "RequestContext":

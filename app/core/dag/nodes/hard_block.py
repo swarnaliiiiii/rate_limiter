@@ -12,6 +12,11 @@ class HardBlockNode(DecisionNode):
         state = self.penalty_fsm.get_state(rate_key)
 
         if state in {PenaltyState.TEMP_BLOCK, PenaltyState.BLOCK}:
+            ctx.trace.add(
+                node="HardBlockNode",
+                outcome="BLOCK",
+                state=state.name
+            )
             return NodeResult(
                 Decision(
                     action="BLOCK",
@@ -21,4 +26,9 @@ class HardBlockNode(DecisionNode):
                 )
             )
 
+        ctx.trace.add(
+            node="HardBlockNode",
+            outcome="PASS",
+            state=state.name
+        )
         return NodeResult()

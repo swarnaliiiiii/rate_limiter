@@ -4,6 +4,10 @@ from app.core.decision import Decision
 
 class AllowNode(DecisionNode):
     def execute(self, ctx):
+        ctx.trace.add(
+            node="AllowNode",
+            outcome="ALLOW"
+        )
         return NodeResult(
             Decision(
                 action="ALLOW",

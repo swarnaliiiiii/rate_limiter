@@ -4,13 +4,17 @@ from app.core.decision import Decision
 
 class RateLimitNode(DecisionNode):
     def __init__(self, engine):
-        self.engine = engine  # IMPORTANT: reuse your existing engine logic
+        self.engine = engine
 
     def execute(self, ctx):
         rate_key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
-
         limiter = self.engine._get_limiter(ctx)
+
         if not limiter:
+            ctx.trace.add(
+                node="RateLimitNode",
+                outcome="NO_CONFIG"
+            )
             return NodeResult(
                 Decision(
                     action="BLOCK",
@@ -19,10 +23,16 @@ class RateLimitNode(DecisionNode):
                 )
             )
 
-        allowed, _ = limiter.allow(rate_key, ctx.timestamp)
+        allowed, count = limiter.allow(rate_key, ctx.timestamp)
 
         if not allowed:
             new_state = self.engine.penalty_fsm.escalate(rate_key)
+            ctx.trace.add(
+                node="RateLimitNode",
+                outcome="LIMIT_EXCEEDED",
+                count=count,
+                escalated_to=new_state.name
+            )
             return NodeResult(
                 Decision(
                     action="BLOCK",
@@ -32,4 +42,9 @@ class RateLimitNode(DecisionNode):
                 )
             )
 
+        ctx.trace.add(
+            node="RateLimitNode",
+            outcome="ALLOW",
+            count=count
+        )
         return NodeResult()
