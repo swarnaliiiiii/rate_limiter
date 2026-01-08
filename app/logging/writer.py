@@ -13,7 +13,6 @@ def log_decision_async(payload: dict):
         db.add(log)
         db.commit()
     except Exception as e:
-        # Never crash the system due to logging
         print("Decision logging failed:", e)
     finally:
         db.close()
