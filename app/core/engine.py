@@ -11,17 +11,15 @@ from app.core.dag.nodes.allow import AllowNode
 
 class DecisionEngine:
     def __init__(self):
-        self.limiters = {}          # unchanged
+        self.limiters = {}         
         self.penalty_fsm = PenaltyFSM()
 
-        # DAG pipeline (ORDER MATTERS)
         self.pipeline = [
             HardBlockNode(self.penalty_fsm),
             RateLimitNode(self),
             AllowNode()
         ]
 
-    # 🔹 YOUR ORIGINAL LIMITER RESOLUTION — UNCHANGED
     def _get_limiter(self, ctx: RequestContext):
         rule = get_rate_limit_rule(
             tenant_id=ctx.tenant_id,
@@ -45,7 +43,6 @@ class DecisionEngine:
         self.limiters[limiter_key] = limiter
         return limiter
 
-    # 🔹 DAG-BASED EVALUATION
     def evaluate(self, ctx: RequestContext) -> Decision:
         for node in self.pipeline:
             result = node.execute(ctx)
