@@ -11,7 +11,6 @@ class SlidingWindowLimiter:
         self.window_size = window_size       
         self.limit = limit                    
         self.buckets: Dict[str, List[dict]] = {}
-        # key -> list of { "ts": int, "count": int }
 
     def _get_buckets(self, key: str) -> List[dict]:
         if key not in self.buckets:
@@ -31,14 +30,12 @@ class SlidingWindowLimiter:
         index = now % self.window_size
         bucket = buckets[index]
 
-        # Reset bucket if it's from an old timestamp
         if bucket["ts"] != now:
             bucket["ts"] = now
             bucket["count"] = 0
 
         bucket["count"] += 1
 
-        # Compute total count in sliding window
         total = 0
         for b in buckets:
             if now - b["ts"] < self.window_size:
