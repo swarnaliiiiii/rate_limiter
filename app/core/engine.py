@@ -7,6 +7,9 @@ from app.config.repo import get_rate_limit_rule
 from app.core.dag.nodes.hard_block import HardBlockNode
 from app.core.dag.nodes.rate_limit import RateLimitNode
 from app.core.dag.nodes.allow import AllowNode
+from app.core.dag.nodes.spike_detect import SpikeDetectionNode
+
+
 
 
 class DecisionEngine:
@@ -16,6 +19,7 @@ class DecisionEngine:
 
         self.pipeline = [
             HardBlockNode(self.penalty_fsm),
+            SpikeDetectionNode(self.penalty_fsm),
             RateLimitNode(self),
             AllowNode()
         ]
