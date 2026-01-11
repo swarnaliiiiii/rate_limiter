@@ -19,7 +19,8 @@ class RateLimitNode(DecisionNode):
                 Decision(
                     action="BLOCK",
                     reason="NO_RATE_LIMIT_CONFIG",
-                    triggered_by="ConfigResolver"
+                    triggered_by="ConfigResolver",
+                    trace= ctx.trace
                 )
             )
 
@@ -38,7 +39,8 @@ class RateLimitNode(DecisionNode):
                     action="BLOCK",
                     reason=f"PENALTY_{new_state.name}",
                     triggered_by="RateLimiter",
-                    retry_after=60
+                    retry_after=60,
+                    trace = ctx.trace
                 )
             )
 

@@ -51,5 +51,4 @@ class DecisionEngine:
         for node in self.pipeline:
             result = node.execute(ctx)
             if result.is_terminal:
-                result.decision.trace = ctx.trace
                 return result.decision

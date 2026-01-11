@@ -22,7 +22,8 @@ class HardBlockNode(DecisionNode):
                     action="BLOCK",
                     reason=f"PENALTY_{state.name}",
                     triggered_by="PenaltyFSM",
-                    retry_after=60
+                    retry_after=60,
+                    trace = ctx.trace
                 )
             )
 

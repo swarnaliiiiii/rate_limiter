@@ -12,6 +12,7 @@ class AllowNode(DecisionNode):
             Decision(
                 action="ALLOW",
                 reason="WITHIN_RATE_LIMIT",
-                triggered_by="SlidingWindowLimiter"
+                triggered_by="SlidingWindowLimiter",
+                trace = ctx.trace
             )
         )
