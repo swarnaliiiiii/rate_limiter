@@ -8,7 +8,7 @@ from app.core.dag.nodes.hard_block import HardBlockNode
 from app.core.dag.nodes.rate_limit import RateLimitNode
 from app.core.dag.nodes.allow import AllowNode
 from app.core.dag.nodes.spike_detect import SpikeDetectionNode
-
+from app.core.dag.nodes.burst_detect import BurstDetectionNode
 
 
 
@@ -19,8 +19,9 @@ class DecisionEngine:
 
         self.pipeline = [
             HardBlockNode(self.penalty_fsm),
-            SpikeDetectionNode(self.penalty_fsm),
             RateLimitNode(self),
+            SpikeDetectionNode(self.penalty_fsm),
+            BurstDetectionNode(),
             AllowNode()
         ]
 
