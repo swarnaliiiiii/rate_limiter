@@ -1,6 +1,6 @@
 import time
 import json
-from app.storage.redis_client import redis_client
+from app.storage.redis_client import get_redis
 
 
 class RedisSlidingWindowLimiter:
@@ -15,7 +15,7 @@ class RedisSlidingWindowLimiter:
         now = now or int(time.time())
         key = self._key(scope)
 
-        data = redis_client.get(key)
+        data = get_redis.get(key)
         if data is None:
             buckets = [{"ts": 0, "count": 0} for _ in range(self.window_size)]
         else:
@@ -35,7 +35,7 @@ class RedisSlidingWindowLimiter:
             if now - b["ts"] < self.window_size:
                 total += b["count"]
 
-        redis_client.setex(
+        get_redis.setex(
             key,
             self.window_size + 5,
             json.dumps(buckets)
