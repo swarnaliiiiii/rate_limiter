@@ -1,4 +1,5 @@
-from app.core.dag.node import DecisionNode, NodeResult
+from app.core.dag.node import DecisionNode
+from app.core.dag.result import NodeResult
 from app.core.decision import Decision
 from app.core.contxt import RequestContext
 from app.storage.redis_client import redis
@@ -13,7 +14,7 @@ MIN_RPS = 10             # prevent low-traffic false positives
 class BurstDetectionNode(DecisionNode):
     name = "burst_detection"
 
-    def run(self, ctx: RequestContext) -> NodeResult:
+    def execute(self, ctx: RequestContext) -> NodeResult:
         key = f"{ctx.tenant_id}:{ctx.route}"
 
         short_key = f"burst:short:{key}"
