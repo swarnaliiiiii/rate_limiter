@@ -5,11 +5,12 @@ from typing import Optional
 from app.core.contxt import RequestContext
 from app.core.engine import DecisionEngine
 from app.logging.writer import log_decision_async
+from app.storage.redis_client import redis_client
 # from app.main import engine
 
 
 router = APIRouter()
-engine = DecisionEngine()
+engine = DecisionEngine(redis_client)
 
 
 class DecisionRequest(BaseModel):

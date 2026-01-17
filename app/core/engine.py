@@ -16,7 +16,7 @@ from app.core.dag.nodes.burst_detect import BurstDetectionNode
 class DecisionEngine:
     def __init__(self, redis_client):
         self.redis = redis_client  # Injected Redis client for metrics
-        self.limiters = {}         
+        self.limiters = {}          
         self.penalty_fsm = PenaltyFSM()
 
         # Decision Pipeline
@@ -24,7 +24,7 @@ class DecisionEngine:
             HardBlockNode(self.penalty_fsm),
             RateLimitNode(self),
             SpikeDetectionNode(self.penalty_fsm),
-            BurstDetectionNode(),
+            BurstDetectionNode(self.redis),
             AllowNode()
         ]
 
@@ -53,7 +53,7 @@ class DecisionEngine:
 
     async def evaluate(self, ctx: RequestContext) -> Decision:
         for node in self.pipeline:
-            result = node.execute(ctx)
+            result = await node.execute(ctx)
             
             # result is a NodeResult, result.decision is the actual Decision
             if result.is_terminal:

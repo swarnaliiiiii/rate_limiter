@@ -2,30 +2,30 @@ from app.core.dag.node import DecisionNode
 from app.core.dag.result import NodeResult
 from app.core.decision import Decision
 from app.core.contxt import RequestContext
-from app.storage.redis_client import redis
 
-# Tunables (can move to config later)
-SHORT_WINDOW = 10        # seconds
-LONG_WINDOW = 120        # seconds
+# Tunables
+SHORT_WINDOW = 10        
+LONG_WINDOW = 120        
 BURST_MULTIPLIER = 5
-MIN_RPS = 10             # prevent low-traffic false positives
-
+MIN_RPS = 10             
 
 class BurstDetectionNode(DecisionNode):
     name = "burst_detection"
 
-    def execute(self, ctx: RequestContext) -> NodeResult:
-        key = f"{ctx.tenant_id}:{ctx.route}"
+    def __init__(self, redis_client):
+        self.redis = redis_client # Use the injected client
 
+    async def execute(self, ctx: RequestContext) -> NodeResult:
+        key = f"{ctx.tenant_id}:{ctx.route}"
         short_key = f"burst:short:{key}"
         long_key = f"burst:long:{key}"
 
-        # Increment counters
-        short_count = redis.incr(short_key)
-        redis.expire(short_key, SHORT_WINDOW)
+        # Use self.redis and await the async calls
+        short_count = await self.redis.incr(short_key)
+        await self.redis.expire(short_key, SHORT_WINDOW)
 
-        long_count = redis.incr(long_key)
-        redis.expire(long_key, LONG_WINDOW)
+        long_count = await self.redis.incr(long_key)
+        await self.redis.expire(long_key, LONG_WINDOW)
 
         # Calculate rates
         burst_rps = short_count / SHORT_WINDOW
@@ -36,7 +36,6 @@ class BurstDetectionNode(DecisionNode):
             and burst_rps >= MIN_RPS
         )
 
-        # ---- tracing ----
         ctx.trace.add(
             node=self.name,
             data={

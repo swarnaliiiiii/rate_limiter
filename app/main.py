@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.api.decision import router as decision_router
 from app.logging.db import init_db
 from app.core.engine import DecisionEngine
+from app.api.monitoring import router as monitoring_router 
 
 app = FastAPI(title="Decision Control Engine")
 
@@ -14,3 +15,4 @@ def startup():
     engine = DecisionEngine()
 
 app.include_router(decision_router)
+app.include_router(monitoring_router)
