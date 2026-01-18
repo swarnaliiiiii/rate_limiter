@@ -13,21 +13,18 @@ class BurstDetectionNode(DecisionNode):
     name = "burst_detection"
 
     def __init__(self, redis_client):
-        self.redis = redis_client # Use the injected client
+        self.redis = redis_client
 
     async def execute(self, ctx: RequestContext) -> NodeResult:
         key = f"{ctx.tenant_id}:{ctx.route}"
         short_key = f"burst:short:{key}"
         long_key = f"burst:long:{key}"
-
-        # Use self.redis and await the async calls
         short_count = await self.redis.incr(short_key)
         await self.redis.expire(short_key, SHORT_WINDOW)
 
         long_count = await self.redis.incr(long_key)
         await self.redis.expire(long_key, LONG_WINDOW)
 
-        # Calculate rates
         burst_rps = short_count / SHORT_WINDOW
         baseline_rps = long_count / LONG_WINDOW
 
