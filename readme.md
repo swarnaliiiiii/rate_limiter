@@ -152,7 +152,6 @@ The goal is to build a **production-style backend control plane** that demonstra
 * Abuse prevention patterns
 * Clean architecture and extensibility
 
-This is intentionally **not a CRUD app**.
 
 ---
 
@@ -168,10 +167,4 @@ Test using Postman:
 POST http://127.0.0.1:8000/v1/decision/check
 ```
 
----
-
-## Final Note
-
-This project is being built incrementally, with a focus on **correctness, clarity, and real-world design patterns**.
-Each feature is added only after the core system is stable.
 
