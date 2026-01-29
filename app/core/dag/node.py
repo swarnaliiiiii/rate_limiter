@@ -4,5 +4,5 @@ from app.core.dag.result import NodeResult
 
 class DecisionNode(ABC):
     @abstractmethod
-    def execute(self, ctx: RequestContext) -> NodeResult:
+    async def execute(self, ctx: RequestContext) -> NodeResult:
         pass

@@ -11,11 +11,11 @@ class RedisSlidingWindowLimiter:
     def _key(self, scope: str) -> str:
         return f"rate:{scope}"
 
-    def allow(self, scope: str, now: int | None = None) -> tuple[bool, int]:
+    async def allow(self, scope: str, now: int | None = None) -> tuple[bool, int]:
         now = now or int(time.time())
         key = self._key(scope)
 
-        data = get_redis.get(key)
+        data = await get_redis().get(key)
         if data is None:
             buckets = [{"ts": 0, "count": 0} for _ in range(self.window_size)]
         else:
@@ -35,7 +35,7 @@ class RedisSlidingWindowLimiter:
             if now - b["ts"] < self.window_size:
                 total += b["count"]
 
-        get_redis.setex(
+        await get_redis().setex(
             key,
             self.window_size + 5,
             json.dumps(buckets)

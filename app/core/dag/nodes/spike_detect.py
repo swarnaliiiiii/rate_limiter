@@ -11,11 +11,11 @@ class SpikeDetectionNode(DecisionNode):
     def __init__(self, penalty_fsm):
         self.penalty_fsm = penalty_fsm
 
-    def execute(self, ctx):
+    async def execute(self, ctx):
         key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
 
-        baseline = get_count(key, BASELINE_WINDOW)
-        current = get_count(key, CURRENT_WINDOW)
+        baseline = await get_count(key, BASELINE_WINDOW)
+        current = await get_count(key, CURRENT_WINDOW)
 
         if baseline < MIN_REQUESTS:
             ctx.trace.add(
@@ -29,7 +29,7 @@ class SpikeDetectionNode(DecisionNode):
         avg_per_min = baseline / (BASELINE_WINDOW / 60)
 
         if current > avg_per_min * SPIKE_MULTIPLIER:
-            new_state = self.penalty_fsm.escalate(key)
+            new_state = await self.penalty_fsm.escalate(key)
 
             ctx.trace.add(
                 node="SpikeDetectionNode",

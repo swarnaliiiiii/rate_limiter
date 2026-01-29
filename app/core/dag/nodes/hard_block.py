@@ -7,9 +7,9 @@ class HardBlockNode(DecisionNode):
     def __init__(self, penalty_fsm):
         self.penalty_fsm = penalty_fsm
 
-    def execute(self, ctx):
+    async def execute(self, ctx):
         rate_key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
-        state = self.penalty_fsm.get_state(rate_key)
+        state = await self.penalty_fsm.get_state(rate_key)
 
         if state in {PenaltyState.TEMP_BLOCK, PenaltyState.BLOCK}:
             ctx.trace.add(

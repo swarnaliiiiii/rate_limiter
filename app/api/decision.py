@@ -5,12 +5,12 @@ from typing import Optional
 from app.core.contxt import RequestContext
 from app.core.engine import DecisionEngine
 from app.logging.writer import log_decision_async
-from app.storage.redis_client import redis_client
+from app.storage.redis_client import get_redis
 # from app.main import engine
 
 
 router = APIRouter()
-engine = DecisionEngine(redis_client)
+engine = DecisionEngine(get_redis())
 
 
 class DecisionRequest(BaseModel):
@@ -28,9 +28,9 @@ class DecisionResponse(BaseModel):
 
 
 @router.post("/v1/decision/check", response_model=DecisionResponse)
-def check_decision(payload: DecisionRequest, background_tasks: BackgroundTasks):
+async def check_decision(payload: DecisionRequest, background_tasks: BackgroundTasks):
     ctx = RequestContext.from_payload(payload)
-    decision = engine.evaluate(ctx)
+    decision = await engine.evaluate(ctx)
 
     background_tasks.add_task(
         log_decision_async,

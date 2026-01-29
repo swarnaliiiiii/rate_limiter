@@ -1,6 +1,6 @@
 import time
 from app.penalties.states import PenaltyState
-from app.storage.redis_client import redis_client
+from app.storage.redis_client import get_redis
 
 
 class PenaltyFSM:
@@ -26,18 +26,18 @@ class PenaltyFSM:
     def _key(self, scope: str) -> str:
         return f"penalty:{scope}"
 
-    def get_state(self, scope: str) -> PenaltyState:
-        val = redis_client.get(self._key(scope))
+    async def get_state(self, scope: str) -> PenaltyState:
+        val = await get_redis().get(self._key(scope))
         return PenaltyState(val) if val else PenaltyState.NORMAL
 
-    def escalate(self, scope: str) -> PenaltyState:
-        current = self.get_state(scope)
+    async def escalate(self, scope: str) -> PenaltyState:
+        current = await self.get_state(scope)
         next_state = self.TRANSITIONS[current]
 
         ttl = self.STATE_TTL.get(next_state)
         if ttl:
-            redis_client.setex(self._key(scope), ttl, next_state.value)
+            await get_redis().setex(self._key(scope), ttl, next_state.value)
         else:
-            redis_client.set(self._key(scope), next_state.value)
+            await get_redis().set(self._key(scope), next_state.value)
 
         return next_state

@@ -35,22 +35,20 @@ class BurstDetectionNode(DecisionNode):
 
         ctx.trace.add(
             node=self.name,
-            data={
-                "short_rps": round(burst_rps, 2),
-                "baseline_rps": round(baseline_rps, 2),
-                "multiplier": BURST_MULTIPLIER,
-                "anomaly": anomaly,
-            },
+            outcome="ANOMALY" if anomaly else "PASS",
+            short_rps=round(burst_rps, 2),
+            baseline_rps=round(baseline_rps, 2),
+            multiplier=BURST_MULTIPLIER,
+            anomaly=anomaly,
         )
 
         if anomaly:
             return NodeResult(
-                continue_pipeline=False,
-                decision=Decision(
+                Decision(
                     action="THROTTLE",
                     reason="SUDDEN_BURST_DETECTED",
                     triggered_by="BurstDetector",
                 ),
             )
 
-        return NodeResult(continue_pipeline=True)
+        return NodeResult()

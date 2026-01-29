@@ -1,8 +1,8 @@
-import redis
 import time
-from app.storage.redis_client import redis_client
+from app.storage.redis_client import get_redis
 
-def get_count(key: str, window_seconds: int) -> int:
+
+async def get_count(key: str, window_seconds: int) -> int:
     """
     Count requests in the last window using sorted set timestamps.
     """
@@ -10,5 +10,5 @@ def get_count(key: str, window_seconds: int) -> int:
     window_start = now - window_seconds
 
     redis_key = f"req:{key}"
-    redis_client.zremrangebyscore(redis_key, 0, window_start)
-    return redis_client.zcard(redis_key)
+    await get_redis().zremrangebyscore(redis_key, 0, window_start)
+    return await get_redis().zcard(redis_key)
