@@ -1,7 +1,7 @@
 import typer
 from devrate.commands.check import check_command
 
-app = typer.Typer(help="Devrate – Distributed Rate Limiting CLI")
+app = typer.Typer(help="Devrate CLI")
 
 app.command("check")(check_command)
 
