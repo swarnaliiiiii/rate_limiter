@@ -1,170 +1,265 @@
-# Rate Limiter & Decision Engine
+# Devrate ⚡  
+**Explainable, Distributed Rate Limiting & Decision Engine**
 
-This project is a **real-time backend decision engine** that evaluates incoming API requests and decides whether they should be **allowed, throttled, or blocked** based on usage patterns and past behavior.
-
-The focus is on **production-style backend logic**, not UI or CRUD APIs.
-
----
-
-## What This System Does (Current)
-
-At a high level, the system:
-
-* Accepts API request metadata (tenant, route, method, etc.)
-* Evaluates the request in real time
-* Returns a clear decision:
-
-  * `ALLOW`
-  * `THROTTLE`
-  * `BLOCK`
-* Explains *why* the decision was made
-
-All decisions are made in **milliseconds**, without hitting a database on the hot path.
+Devrate is a **production-grade rate limiting and abuse detection engine** designed for modern, multi-tenant systems.  
+Unlike traditional rate limiters, Devrate focuses on **explainability**, **stateful decisions**, and **operator-first workflows** via a CLI.
 
 ---
 
-## Core Flow
+## Why Devrate?
+
+Most rate limiters answer only one question:
+
+> ❌ *“Should this request be blocked?”*
+
+Devrate answers three:
+
+> ✅ *What decision was made?*  
+> ✅ *Why was it made?*  
+> ✅ *Which rule or signal triggered it?*
+
+This makes Devrate ideal for:
+- APIs with complex traffic patterns
+- Fintech / auth / OTP flows
+- Abuse-prone public endpoints
+- Multi-tenant platforms
+
+---
+
+## Core Concepts
+
+### 🔗 DAG-Based Decision Pipeline
+Requests flow through a **Directed Acyclic Graph (DAG)** of decision nodes:
+- Global limits
+- Route-level limits
+- User-level limits
+- Abuse detection
+- Penalty FSM
+
+Each node can:
+- Allow
+- Throttle
+- Block
+- Escalate penalties
+
+Execution short-circuits on terminal decisions.
+
+---
+
+### 🧠 Explainable Decisions
+Every decision:
+- Has a **Decision ID**
+- Records **node-by-node execution**
+- Can be replayed and inspected later
+
+This is a first-class feature — not logs glued together.
+
+---
+
+### 🔐 Stateful Penalty FSM
+Devrate supports **progressive penalties**:
+- `ALLOW → WARN → THROTTLE → BLOCK`
+- Automatic decay using TTL
+- Escalation based on abuse signals
+
+---
+
+### ⚙️ Operator-First CLI
+Devrate is **CLI-first**, not dashboard-first.
+
+Operators can:
+- Test decisions
+- Inspect traces
+- Debug production behavior
+- Understand *why* traffic was blocked
+
+---
+
+## Architecture Overview
 
 ```
-Request → Context → Decision Engine → Decision
-```
 
-1. A request hits the FastAPI endpoint
-2. It is converted into an immutable `RequestContext`
-3. The decision engine evaluates it
-4. A decision is returned immediately
+Request
+│
+▼
+RequestContext
+│
+▼
+Decision DAG
+├─ Global Limit
+├─ Route Limit
+├─ User Limit
+├─ Abuse Detection
+└─ Penalty FSM
+│
+▼
+Decision + Trace
+│
+├─ Redis (counters, penalties, traces)
+└─ Async Logging
 
----
-
-##  Implemented Features (So Far)
-
-### 1. Real-Time Decision API
-
-* `POST /v1/decision/check`
-* Stateless FastAPI endpoint
-* Clean and stable API contract
-
----
-
-### 2. Sliding Window Rate Limiting
-
-* True sliding window (not fixed window)
-* Uses a ring buffer approach
-* Fair across time boundaries
-* Prevents burst abuse
-* Redis-backed for shared state and horizontal scaling
+````
 
 ---
 
-### 3. Penalty Escalation (Finite State Machine)
+## API Endpoints
 
-Instead of blocking instantly, the system escalates penalties gradually:
+### Check a decision
+```http
+POST /v1/decision/check
+````
 
-```
-NORMAL → WARN → THROTTLE → TEMP_BLOCK → BLOCK
-```
-
-* Penalties are applied only when rate limits are repeatedly exceeded
-* Each penalty state has a TTL
-* Clients are automatically forgiven after cooldowns
-* Penalty state is stored in Redis
-
-This mirrors how real systems like API gateways and WAFs handle abuse.
-
----
-
-### 4. Explainable Decisions
-
-Every response includes:
-
-* The final action (`ALLOW`, `THROTTLE`, `BLOCK`)
-* The reason for the decision
-* The component that triggered it
-* Optional retry timing
-
-Example response:
+**Request**
 
 ```json
 {
+  "tenant_id": "acme",
+  "route": "/login",
+  "method": "POST",
+  "user_id": "u123"
+}
+```
+
+**Response**
+
+```json
+{
+  "decision_id": "d-9f2a3b1c",
   "action": "BLOCK",
-  "reason": "PENALTY_TEMP_BLOCK",
-  "triggered_by": "PenaltyFSM",
-  "retry_after": 60
+  "reason": "burst_detected",
+  "triggered_by": "abuse_check",
+  "retry_after": 10
 }
 ```
 
 ---
 
-### 5. No Database on the Hot Path
+### Fetch decision trace
 
-* No SQL
-* No ORM
-* No CRUD during request evaluation
+```http
+GET /v1/decision/trace/{decision_id}
+```
 
-All real-time logic uses in-memory processing + Redis for speed and safety.
+**Response**
+
+```json
+{
+  "decision_id": "d-9f2a3b1c",
+  "trace": [
+    { "node": "global_limit", "result": "PASS", "latency_ms": 2 },
+    { "node": "route_limit", "result": "PASS", "latency_ms": 1 },
+    { "node": "abuse_check", "result": "FLAG" },
+    { "node": "penalty_fsm", "result": "BLOCK" }
+  ]
+}
+```
+
+---
+
+## CLI Usage
+
+### Check a decision
+
+```bash
+devrate check \
+  --tenant acme \
+  --route /login \
+  --method POST \
+  --user u123
+```
+
+Output:
+
+```
+DECISION_ID : d-9f2a3b1c
+ACTION      : BLOCK
+REASON      : burst_detected
+TRIGGERED   : abuse_check
+```
+
+---
+
+### Inspect decision trace
+
+```bash
+devrate trace d-9f2a3b1c
+```
+
+Output:
+
+```
+✔ global_limit     PASS   (2ms)
+✔ route_limit      PASS   (1ms)
+⚠ abuse_check      FLAG
+✖ penalty_fsm      BLOCK
+```
 
 ---
 
 ## Tech Stack
 
-* **Python**
-* **FastAPI**
-* **Redis**
-* **Postman** (for testing)
+* **Backend**: FastAPI
+* **Rate Limiting**: Redis (sliding windows)
+* **Config Storage**: PostgreSQL
+* **CLI**: Typer + Rich
+* **Tracing**: Redis (TTL-based)
+* **Architecture**: DAG-based decision engine
 
 ---
 
-## Upcoming Features
+## Design Principles
 
-Planned next steps include:
-
-* **Policy-driven rate limits**
-
-  * Different limits per tenant
-  * Different limits per route
-  * Config-based behavior instead of hardcoded values
-
-* **Decision logging**
-
-  * Async logging to Postgres
-  * Audit trail for decisions
-  * Metrics and analytics support
-
-* **Policy orchestration**
-
-  * DAG-based execution of multiple rules
-  * Early exits and explainable paths
-
-* **Admin / Observability APIs**
-
-  * Inspect current limits and penalties
-  * View active penalty states
+* Explainability over opacity
+* Stateful decisions > static limits
+* CLI-first observability
+* Fail-safe defaults
+* Multi-tenant by design
 
 ---
 
-## Goal of This Project
+## Roadmap
 
-The goal is to build a **production-style backend control plane** that demonstrates:
-
-* Systems thinking
-* State management
-* Real-time decision making
-* Abuse prevention patterns
-* Clean architecture and extensibility
-
+* [ ] Inline trace output (`devrate check --trace`)
+* [ ] Persistent trace storage (Postgres)
+* [ ] Config management via CLI
+* [ ] gRPC decision API
+* [ ] Distributed executor support
 
 ---
 
-##  Running the Project
+## Status
 
-```bash
-uvicorn app.main:app --reload
+🚧 **Active Development**
+Core decision engine, DAG execution, CLI, and tracing are implemented.
+
+---
+
+## Author
+
+Built by **Swarnali**
+Focused on backend systems, distributed infra, and developer tooling.
+
 ```
 
-Test using Postman:
+---
 
+## Why this README works
+- Sounds **production-ready**
+- Explains *why* Devrate exists
+- Highlights your **DAG + explainability** (rare)
+- Perfect for:
+  - GitHub
+  - Resume links
+  - Interviews
+  - Startup-style demos
+
+---
+
+If you want next, I can:
+1. Make it **shorter & punchier**
+2. Rewrite it for **resume / portfolio**
+3. Add a **“Real-world use case” section**
+4. Add **ASCII DAG diagram**
+
+Say the number 👇
 ```
-POST http://127.0.0.1:8000/v1/decision/check
-```
-
-
