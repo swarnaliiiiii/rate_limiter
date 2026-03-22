@@ -232,34 +232,3 @@ Output:
 🚧 **Active Development**
 Core decision engine, DAG execution, CLI, and tracing are implemented.
 
----
-
-## Author
-
-Built by **Swarnali**
-Focused on backend systems, distributed infra, and developer tooling.
-
-```
-
----
-
-## Why this README works
-- Sounds **production-ready**
-- Explains *why* Devrate exists
-- Highlights your **DAG + explainability** (rare)
-- Perfect for:
-  - GitHub
-  - Resume links
-  - Interviews
-  - Startup-style demos
-
----
-
-If you want next, I can:
-1. Make it **shorter & punchier**
-2. Rewrite it for **resume / portfolio**
-3. Add a **“Real-world use case” section**
-4. Add **ASCII DAG diagram**
-
-Say the number 👇
-```
