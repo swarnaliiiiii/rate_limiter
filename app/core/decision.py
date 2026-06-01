@@ -9,3 +9,4 @@ class Decision:
     triggered_by: str
     retry_after: Optional[int] = None
     trace: Optional[DecisionTrace] = None
+    decision_id: Optional[str] = None

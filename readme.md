@@ -219,8 +219,9 @@ Output:
 
 ## Roadmap
 
+* [x] Persistent trace storage (Redis, TTL-based)
+* [x] Trace inspection API + `devrate trace` CLI
 * [ ] Inline trace output (`devrate check --trace`)
-* [ ] Persistent trace storage (Postgres)
 * [ ] Config management via CLI
 * [ ] gRPC decision API
 * [ ] Distributed executor support

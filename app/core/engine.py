@@ -1,7 +1,10 @@
 from datetime import datetime
+from dataclasses import replace
 import json
+import uuid
 from app.core.contxt import RequestContext
 from app.core.decision import Decision
+from app.core.trace_store import save_trace
 from app.limiter.redis_sw import RedisSlidingWindowLimiter
 from app.penalties.fsm import PenaltyFSM
 from app.config.repo import get_rate_limit_rule
@@ -54,14 +57,18 @@ class DecisionEngine:
     async def evaluate(self, ctx: RequestContext) -> Decision:
         for node in self.pipeline:
             result = await node.execute(ctx)
-            
+
             # result is a NodeResult, result.decision is the actual Decision
             if result.is_terminal:
-                decision = result.decision
-                
+                # Stamp a unique id and persist the trace so it can be
+                # replayed later via GET /v1/decision/trace/{id}.
+                decision_id = f"d-{uuid.uuid4().hex[:8]}"
+                decision = replace(result.decision, decision_id=decision_id)
+                await save_trace(decision_id, ctx.trace)
+
                 # Update Real-Time Metrics before returning
                 await self._record_metrics(ctx, decision)
-                
+
                 return decision
 
     async def _record_metrics(self, ctx: RequestContext, decision: Decision):

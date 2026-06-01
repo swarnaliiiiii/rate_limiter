@@ -39,4 +39,8 @@ def get_rate_limit_rule(tenant_id: str, route: str, user_id: str | None):
         return rule
 
     finally:
+        # End the read transaction so the pooled connection doesn't return
+        # with a pinned snapshot — otherwise rules added while the server is
+        # running stay invisible until the connection happens to recycle.
+        db.commit()
         db.close()

@@ -37,6 +37,8 @@ def check_command(
     table.add_column("Field", style="bold")
     table.add_column("Value")
 
+    if result.get("decision_id"):
+        table.add_row("Decision ID", result["decision_id"])
     table.add_row("Action", result["action"])
     table.add_row("Reason", result["reason"])
     table.add_row("Triggered By", result["triggered_by"])

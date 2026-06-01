@@ -14,3 +14,11 @@ class DevrateAPI:
         )
         resp.raise_for_status()
         return resp.json()
+
+    def get_trace(self, decision_id: str) -> dict:
+        resp = httpx.get(
+            f"{self.base_url}/v1/decision/trace/{decision_id}",
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return resp.json()

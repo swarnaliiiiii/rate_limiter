@@ -1,6 +1,6 @@
 from app.core.dag.node import DecisionNode
 from app.core.dag.result import NodeResult
-from app.abuse.redis_stats import get_count
+from app.abuse.redis_stats import get_count, record_event
 
 BASELINE_WINDOW = 300
 CURRENT_WINDOW = 60
@@ -13,6 +13,9 @@ class SpikeDetectionNode(DecisionNode):
 
     async def execute(self, ctx):
         key = f"{ctx.tenant_id}:{ctx.route}:{ctx.user_id}"
+
+        # Record this request so the baseline actually accumulates over time.
+        await record_event(key, ctx.timestamp)
 
         baseline = await get_count(key, BASELINE_WINDOW)
         current = await get_count(key, CURRENT_WINDOW)
