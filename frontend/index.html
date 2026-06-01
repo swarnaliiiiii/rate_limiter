@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Devrate Console</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --border: #e3e3e6;
+    --text: #1c1c1e;
+    --muted: #6b6b70;
+    --accent: #2563eb;
+    --green: #15803d;
+    --red: #b91c1c;
+    --amber: #b45309;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 { margin: 0; font-size: 16px; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .panel.wide { grid-column: 1 / -1; }
+  h2 { margin: 0 0 12px; font-size: 14px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  button {
+    padding: 8px 14px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    font: inherit;
+    cursor: pointer;
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  button.secondary { background: #fff; color: var(--accent); }
+  .status { font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 16px; }
+  .status.error { color: var(--red); }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.ALLOW { color: var(--green); background: #ecfdf3; }
+  .badge.BLOCK { color: var(--red); background: #fef2f2; }
+  .badge.THROTTLE { color: var(--amber); background: #fffbeb; }
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 12px; }
+  .card { border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+  .card .n { font-size: 20px; font-weight: 600; }
+  .card .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .empty { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  .outcome-PASS, .outcome-ALLOW { color: var(--green); }
+  .outcome-BLOCK, .outcome-NO_CONFIG, .outcome-LIMIT_EXCEEDED { color: var(--red); }
+  .outcome-ANOMALY, .outcome-SPIKE_DETECTED, .outcome-FLAG { color: var(--amber); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Devrate Console</h1>
+  <p>Thin client over the decision API · <span class="mono" id="base-url"></span></p>
+</header>
+
+<main>
+  <!-- Check: submit a decision request -->
+  <section class="panel">
+    <h2>Check decision</h2>
+    <form id="check-form">
+      <div class="row">
+        <div><label>Tenant</label><input name="tenant_id" value="demo" required /></div>
+        <div><label>User (optional)</label><input name="user_id" value="alice" /></div>
+      </div>
+      <div class="row">
+        <div><label>Route</label><input name="route" value="/api" required /></div>
+        <div><label>Method</label><input name="method" value="GET" required /></div>
+      </div>
+      <button type="submit">Send request</button>
+    </form>
+    <div class="status" id="check-status"></div>
+    <table id="check-result" hidden>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- Trace: look up a stored decision trace by id -->
+  <section class="panel">
+    <h2>Inspect trace</h2>
+    <label>Decision ID</label>
+    <div class="row">
+      <div><input id="trace-id" placeholder="d-xxxxxxxx" class="mono" /></div>
+      <button class="secondary" id="trace-btn" type="button">Fetch</button>
+    </div>
+    <div class="status" id="trace-status"></div>
+    <table id="trace-result" hidden>
+      <thead><tr><th>Node</th><th>Outcome</th><th>Metadata</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- Monitoring: aggregate dashboard counters -->
+  <section class="panel wide">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 style="margin:0;">Monitoring summary</h2>
+      <button class="secondary" id="refresh-btn" type="button">Refresh</button>
+    </div>
+    <div class="status" id="summary-status"></div>
+    <div class="cards" id="summary-cards" hidden></div>
+  </section>
+</main>
+
+<script>
+const BASE_URL = "http://localhost:8000";
+document.getElementById("base-url").textContent = BASE_URL;
+
+// Thin wrapper: throws on non-2xx with the server's detail when present.
+async function api(path, opts) {
+  const res = await fetch(BASE_URL + path, opts);
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail = body && body.detail ? body.detail : res.statusText;
+    throw new Error(`${res.status}: ${detail}`);
+  }
+  return body;
+}
+
+function setStatus(el, msg, isError) {
+  el.textContent = msg || "";
+  el.classList.toggle("error", !!isError);
+}
+
+// --- Check ---
+const checkForm = document.getElementById("check-form");
+const checkStatus = document.getElementById("check-status");
+const checkResult = document.getElementById("check-result");
+
+checkForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(checkForm);
+  const payload = {
+    tenant_id: fd.get("tenant_id"),
+    route: fd.get("route"),
+    method: fd.get("method"),
+    user_id: fd.get("user_id") || null,
+  };
+  const btn = checkForm.querySelector("button");
+  btn.disabled = true;
+  checkResult.hidden = true;
+  setStatus(checkStatus, "Sending…");
+  try {
+    const d = await api("/v1/decision/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    checkResult.querySelector("tbody").innerHTML = `
+      <tr><td>Decision ID</td><td><span class="mono">${d.decision_id}</span></td></tr>
+      <tr><td>Action</td><td><span class="badge ${d.action}">${d.action}</span></td></tr>
+      <tr><td>Reason</td><td>${d.reason}</td></tr>
+      <tr><td>Triggered by</td><td>${d.triggered_by}</td></tr>
+      <tr><td>Retry after</td><td>${d.retry_after == null ? "—" : d.retry_after + "s"}</td></tr>`;
+    checkResult.hidden = false;
+    setStatus(checkStatus, "");
+    // Convenience: prefill the trace lookup with this decision's id.
+    document.getElementById("trace-id").value = d.decision_id;
+  } catch (err) {
+    setStatus(checkStatus, err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// --- Trace ---
+const traceBtn = document.getElementById("trace-btn");
+const traceStatus = document.getElementById("trace-status");
+const traceResult = document.getElementById("trace-result");
+
+traceBtn.addEventListener("click", async () => {
+  const id = document.getElementById("trace-id").value.trim();
+  if (!id) { setStatus(traceStatus, "Enter a decision ID.", true); return; }
+  traceBtn.disabled = true;
+  traceResult.hidden = true;
+  setStatus(traceStatus, "Loading…");
+  try {
+    const data = await api(`/v1/decision/trace/${encodeURIComponent(id)}`);
+    const steps = data.steps || [];
+    if (steps.length === 0) {
+      setStatus(traceStatus, "Trace has no steps.");
+    } else {
+      traceResult.querySelector("tbody").innerHTML = steps.map((s) => {
+        const meta = Object.entries(s.metadata || {}).map(([k, v]) => `${k}=${v}`).join("  ");
+        return `<tr>
+          <td>${s.node}</td>
+          <td class="outcome-${s.outcome}">${s.outcome}</td>
+          <td class="mono">${meta || "—"}</td></tr>`;
+      }).join("");
+      traceResult.hidden = false;
+      setStatus(traceStatus, "");
+    }
+  } catch (err) {
+    setStatus(traceStatus, err.message, true);
+  } finally {
+    traceBtn.disabled = false;
+  }
+});
+
+// --- Monitoring ---
+const refreshBtn = document.getElementById("refresh-btn");
+const summaryStatus = document.getElementById("summary-status");
+const summaryCards = document.getElementById("summary-cards");
+
+async function loadSummary() {
+  refreshBtn.disabled = true;
+  setStatus(summaryStatus, "Loading…");
+  try {
+    const s = await api("/v1/monitoring/summary");
+    const cards = [
+      ["Allow", s.allow],
+      ["Blocked", s.blocked],
+      ["Throttled", s.throttled],
+      ["Penalized keys", s.penalized_keys],
+      ["Active rules", s.active_rules],
+    ];
+    summaryCards.innerHTML = cards.map(([l, n]) =>
+      `<div class="card"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+    summaryCards.hidden = false;
+    setStatus(summaryStatus, `Today — allow ${s.today.allow} · block ${s.today.block} · throttle ${s.today.throttle}`);
+  } catch (err) {
+    summaryCards.hidden = true;
+    setStatus(summaryStatus, err.message, true);
+  } finally {
+    refreshBtn.disabled = false;
+  }
+}
+
+refreshBtn.addEventListener("click", loadSummary);
+loadSummary(); // initial load
+</script>
+</body>
+</html>
